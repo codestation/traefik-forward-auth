@@ -1,0 +1,55 @@
+---
+kind: pipeline
+name: default
+type: docker
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: build
+    image: codestation/drone-docker
+    settings:
+      repo: registry.corp.megpoid.xyz/codestation/traefik-forward-auth
+      tags: latest
+      registry: registry.corp.megpoid.xyz
+      buildkit: true
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+    environment:
+      GOPROXY:
+        from_secret: goproxy_url
+
+  - name: dockerhub
+    image: codestation/drone-docker
+    settings:
+      repo: codestation/traefik-forward-auth
+      tags: latest
+      buildkit: true
+      username:
+        from_secret: dockerhub_username
+      password:
+        from_secret: dockerhub_password
+    environment:
+      GOPROXY:
+        from_secret: goproxy_url
+
+  - name: update
+    image: plugins/webhook
+    settings:
+      urls: http://updater:8000/apis/swarm/v1/update
+      token_value:
+        from_secret: updater_appkey
+      template: |
+        {
+          "images": [
+            "registry.corp.megpoid.xyz/codestation/traefik-forward-auth"
+          ]
+        }
+
+trigger:
+  branch:
+    - master
