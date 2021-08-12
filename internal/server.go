@@ -107,6 +107,9 @@ func (s *Server) AuthHandler(providerName, rule string) http.HandlerFunc {
 		// Validate user
 		valid := ValidateEmail(email, rule)
 		if !valid {
+			// Clear cookie
+			http.SetCookie(w, ClearCookie(r))
+
 			logger.WithField("email", email).Warn("Invalid email")
 			http.Error(w, "Not authorized", 401)
 			return
